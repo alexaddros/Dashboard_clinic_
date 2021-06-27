@@ -1,0 +1,5 @@
+venv
+*.pyc
+dash*
+test_upload.py
+avocado.csv
