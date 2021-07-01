@@ -3,3 +3,4 @@ venv
 dash*
 test_upload.py
 avocado.csv
+/proverka_2.py
