@@ -201,7 +201,7 @@ app.layout = html.Div([
                 html.H2(id='use-hint-bot', children='Если в столбце нечисловые значения отфильтруйте по возможным значениям, пример: СПЛИТ / ПГТ-А', style={'textAlign': 'center'}),
             ]),
             html.Div(children=[
-                html.Img(src='assets/usage-tooltip.png', style={'width': '100%', 'height': '100%'})
+                html.Img(src='/assets/images/tooltip.png', style={'width': '100%', 'height': '100%'})
             ])
         ], style={'display': 'grid', 'grid-template-columns': '80% 20%'}),
 
