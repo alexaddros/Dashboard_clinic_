@@ -144,6 +144,7 @@ app.layout = html.Div([
         html.Img(src=app.get_asset_url('/images/my_image_clinic.png')), # Подгружаем картинку
         html.H1(children="Pregnancy Analytics", className="header-title", style={"fontSize": "48px", 'color':'black'},),
         html.P(children="Контролируй все процессы сети клиник в одном месте", className="header-description"),]),
+
         #Подгрузка Данных
         dcc.Upload(id='upload-data', children=html.Div([ 'Перетащите файл сюда или ', html.A('выберите файл на компьютере') ]),
             multiple=False, # Allow multiple files to be uploaded
@@ -151,7 +152,7 @@ app.layout = html.Div([
                 'borderStyle': 'dashed', 'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'} ),
         html.Div(id='output-data-upload'),],),
 
-        #Кнопка фильтров
+        #Кнопки фильтров для таблицы
         html.Div(children=[
             html.Div(children=[ html.Div(children="Регион", className="menu-title"),
                 dcc.Dropdown(id="head-region-filter", value="Москва", multi=True, clearable=False, className="dropdown",
@@ -161,11 +162,11 @@ app.layout = html.Div([
                 dcc.Dropdown(id="head-Anomal-filter", value="all", clearable=False,searchable=False, className="dropdown",
                              options=[{"label": 'Все', "value": 'all'},
                             {"label": 'Только отклонения', "value": 'anomal'},{"label": 'Только нормальные', "value": 'normal'}],),
-                html.Div(children=[html.Div(children="Количество отклонений", className="menu-title"),
+                html.Div(children=[html.Div(children="Количество ячеек со значимым отклонением (красные ячейки) в одной строке", className="menu-title"),
                                    dcc.RangeSlider(className="menu-RangeSlider",id="head-AnomalCount-filter",
                                     marks={i: '{}'.format(i) for i in range(0, 26, 3)},
-                                                   count=1, min=0, max=25, step=1, value=[0, 12])], ),
-                html.Div(children=[html.Div(children="Степень отклонения от нормы", className="menu-title"),
+                                                   count=1, min=0, max=25, step=1, value=[0, 18])], ),
+                html.Div(children=[html.Div(children="Степень отклонения от нормы (Вы можете подобрать насколько процентов значение в ячейке может отклоняться от среднего значения в данном столбце)", className="menu-title"),
                                     dcc.Slider(className="menu-RangeSlider",id="head-AnomalLevel-filter",#tooltip={"value":'Количество сигм'},
                                     marks={i: '{}'.format(i) for i in range(0, 6, 1)}, min=0, max=5, step=1, value=1)], ),  
                 html.Div(children=[
