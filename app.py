@@ -2,6 +2,9 @@ import base64
 import datetime
 import io
 import dash
+from dash_core_components.RadioItems import RadioItems
+from dash_html_components import Button
+from dash_html_components.Div import Div
 from dash_table.Format import Format
 from dash.dependencies import Input, Output, State
 import dash_table
@@ -10,6 +13,14 @@ import dash_html_components as html
 import pandas as pd
 import numpy as np
 
+
+class AllNums:
+    def __init__(self):
+        pass
+
+    def __eq__(self, o):
+        return True
+        
 
 # Подгрузим данные и размножим их до 1000
 data = pd.read_csv('./data/Statistika_Po_Laboratorii_Vrt_first_sheet.csv', encoding='windows-1251', decimal=",")
@@ -58,9 +69,13 @@ num_cols = ['№ попытки', 'Количество фолликулов',
 
 col_means_dict = {}
 for col in num_cols:
-    col_means_dict[col] = [full_df[col].mean(), full_df[col].mean()/300]  #[full_df[col].mean(), full_df[col].std()]
-df = full_df.copy()
+    col_means_dict[col] = [full_df[col].mean(), full_df[col].std()]
 
+df = full_df.copy()
+empty = [x.iloc[0] for x in [df.loc[row].isna().sum(1) for row in df.index]]
+minimum_empty = min(empty)
+maximum_empty = max(empty)
+everything = AllNums()
 
 external_stylesheets = [ {"href": "https://fonts.googleapis.com/css2?"
                         "family=Lato:wght@400;700&display=swap",
@@ -117,10 +132,6 @@ def get_table(df):
                              column: {'value': check_null_outlier(col_means_dict[column], value), 'type': 'markdown'}
                              for column, value in row.items() if column in col_means_dict.keys()
                          } for row in df.to_dict('records')],
-
-        tooltip={column: {'value': '![Картинка]({})'.format(
-            app.get_relative_path('/assets/images/head_tip_2.PNG')), 'type': 'markdown', 'use_with': 'header'}
-            for column in df.columns}
             )
 
 
@@ -133,7 +144,6 @@ app.layout = html.Div([
         html.Img(src=app.get_asset_url('/images/my_image_clinic.png')), # Подгружаем картинку
         html.H1(children="Pregnancy Analytics", className="header-title", style={"fontSize": "48px", 'color':'black'},),
         html.P(children="Контролируй все процессы сети клиник в одном месте", className="header-description"),]),
-
         #Подгрузка Данных
         dcc.Upload(id='upload-data', children=html.Div([ 'Перетащите файл сюда или ', html.A('выберите файл на компьютере') ]),
             multiple=False, # Allow multiple files to be uploaded
@@ -141,7 +151,7 @@ app.layout = html.Div([
                 'borderStyle': 'dashed', 'borderRadius': '5px', 'textAlign': 'center', 'margin': '10px'} ),
         html.Div(id='output-data-upload'),],),
 
-        #Кнопки фильтров для таблицы
+        #Кнопка фильтров
         html.Div(children=[
             html.Div(children=[ html.Div(children="Регион", className="menu-title"),
                 dcc.Dropdown(id="head-region-filter", value="Москва", multi=True, clearable=False, className="dropdown",
@@ -151,17 +161,23 @@ app.layout = html.Div([
                 dcc.Dropdown(id="head-Anomal-filter", value="all", clearable=False,searchable=False, className="dropdown",
                              options=[{"label": 'Все', "value": 'all'},
                             {"label": 'Только отклонения', "value": 'anomal'},{"label": 'Только нормальные', "value": 'normal'}],),
-                html.Div(children=[html.Div(children="Количество ячеек со значимым отклонением (красные ячейки) в одной строке", className="menu-title"),
+                html.Div(children=[html.Div(children="Количество отклонений", className="menu-title"),
                                    dcc.RangeSlider(className="menu-RangeSlider",id="head-AnomalCount-filter",
                                     marks={i: '{}'.format(i) for i in range(0, 26, 3)},
-                                                   count=1, min=0, max=25, step=1, value=[0, 18])], ),
-                html.Div(children=[html.Div(children="Степень отклонения от нормы (Вы можете подобрать насколько процентов значение в ячейке может отклоняться от среднего значения в данном столбце)", className="menu-title"),
+                                                   count=1, min=0, max=25, step=1, value=[0, 12])], ),
+                html.Div(children=[html.Div(children="Степень отклонения от нормы", className="menu-title"),
                                     dcc.Slider(className="menu-RangeSlider",id="head-AnomalLevel-filter",#tooltip={"value":'Количество сигм'},
-                                    marks={i: '{}'.format(i) for i in range(0, 6, 1)}, min=0, max=5, step=1, value=1)], ),
-                html.Div(children=[html.Div(children="Количество незаполненных врачом ячеек в одной строке", className="menu-title"),
-                                    dcc.RangeSlider(className="menu-RangeSlider",id="head-EmptyCount-filter",
-                                                    marks={i: '{}'.format(i) for i in range(0, 31, 5)},
-                                                                   count=1, min=0, max=30, step=1, value=[15, 30])], ),]),
+                                    marks={i: '{}'.format(i) for i in range(0, 6, 1)}, min=0, max=5, step=1, value=1)], ),  
+                html.Div(children=[
+                html.Div(children='Количество пропусков', className='menu-title'),
+                dcc.RadioItems(options=[
+                    {'label': 'Без пропусков', 'value': 0},
+                    {'label': 'Максимум', 'value': maximum_empty},
+                    {'label': 'Минимум', 'value': minimum_empty},
+                    {'label': 'Не использовать критерий', 'value': -1}
+                ], value=0, labelStyle={'display': 'inline-block'}, id='head-EmptyCount-filter')
+                ])                                     
+                ]),
             html.Div(children=[ html.Div(children="Период времени", className="menu-title"),
                 dcc.DatePickerRange(id="head-date-range", min_date_allowed=data["Дата пункции"].min(),
                                     max_date_allowed=data["Дата пункции"].max(),
@@ -169,10 +185,30 @@ app.layout = html.Div([
                                     end_date=data["Дата пункции"].max(), ), ]),
         ], className="head-menu", ),  # head-menu - стили для головной панели над таблицей
 
-        #Таблица
+
+        # Кнопка для снятия фильтрации
+        html.Button('Снять все фильтры', id='clear-filters', n_clicks=0),
+
+        # Инструкция использования
+        html.Div(children=[
+            html.Div(children=[
+                html.H2(id='use-hint-top', children='Чтобы задать фильтр напишите в пустой строке над необходимым столбцом выбранное значение или диапазон  (взято для примера)', style={'textAlign': 'center'}),
+                html.H2(children='=18, либо', style={'textAlign': 'center'},),
+                html.H2(children='>18, либо', style={'textAlign': 'center'}),
+                html.H2(children='<18, либо', style={'textAlign': 'center'}),
+                html.H2(children='18-24 (диапазон)', style={'textAlign': 'center'}),
+                html.H2(id='use-hint-bot', children='Если в столбце нечисловые значения отфильтруйте по возможным значениям, пример: СПЛИТ / ПГТ-А', style={'textAlign': 'center'}),
+            ]),
+            html.Div(children=[
+                html.Img(src='assets/usage-tooltip.png', style={'width': '100%', 'height': '100%'})
+            ])
+        ], style={'display': 'grid', 'grid-template-columns': '80% 20%'}),
+
+        # Таблица
         html.Div(id='table-filtered', children=[
-        get_table(df), ]),
-        #Фильтры для графика
+            get_table(df), ]),
+
+        # Фильтры для графика
         html.Div(children=[
             html.Div(children=[ html.Div(children="Город", className="menu-title"),
                 dcc.Dropdown(id="region-filter", options=[{"label": 'Moscow', "value": 'Moscow'}],
@@ -192,6 +228,16 @@ app.layout = html.Div([
                 html.Div(children=dcc.Graph(id="volume-chart", config={"displayModeBar": False}),className="card",),
                 html.Div(id='datatable-interactivity-container', className="card"),
         ], className="wrapper",), ])
+
+# Снятие всех фильтров
+@app.callback(
+    Output('head-AnomalCount-filter', 'value'),
+    Output('head-AnomalLevel-filter', 'value'),
+    Output('head-EmptyCount-filter', 'value'),
+    [Input('clear-filters', 'n_clicks')])
+def clear_all_filters(n_clicks):
+    return [0, 12], 2, -1 # Здесь оставляем те значения, который являются стандартными
+
 
 #Подгрузка локальной таблицы
 @app.callback(
@@ -311,11 +357,15 @@ def update_charts(selected_column_list, region, anomal, level, anomal_range_list
             anomal_count += mole_line_mask
 
     filtered_data['Количество_отклонений'] = anomal_count
-    filtered_data = filtered_data[(filtered_data['Количество_отклонений'] >= anomal_range_list[0])&
-                                  (filtered_data['Количество_отклонений'] <= anomal_range_list[1]) &
-                                  (filtered_data.isna().sum(1) >= empty_range_list[0]) &
-                                  (filtered_data.isna().sum(1) <= empty_range_list[1]) &
-                                  (filtered_data.isna().sum(1) <= empty_range_list[1]) ]
+    if empty_range_list != -1:
+        filtered_data = filtered_data[(filtered_data['Количество_отклонений'] >= anomal_range_list[0])&
+                                    (filtered_data['Количество_отклонений'] <= anomal_range_list[1]) &
+                                    (filtered_data.isna().sum(1) == empty_range_list)]
+    else:
+        filtered_data = filtered_data[(filtered_data['Количество_отклонений'] >= anomal_range_list[0])&
+                                    (filtered_data['Количество_отклонений'] <= anomal_range_list[1])]
+
+
     if anomal == 'normal':
         filtered_data = filtered_data[filtered_data['Количество_отклонений'] == 0]
     elif anomal == 'anomal':
